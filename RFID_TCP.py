@@ -1,23 +1,45 @@
-# read_rfid_tcp.py (stored or executed remotely)
-rfid_script = """
-import socket
+import paramiko
+import tkinter as tk
+from tkinter import filedialog
 
-HOST = '10.220.12.61'  # RFID IP
-PORT = 4001            # Example port
-USERNAME = 'admin'     # Example auth
-PASSWORD = '123456'
+# _______Ask user to choose output file path__________
+root = tk.Tk()
+root.withdraw()
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((HOST, PORT))
+output_file = filedialog.asksaveasfilename(
+    defaultextension=".txt",
+    filetypes=[("Text files", "*.txt")],
+    title="Save RFID output as..."
+)
 
-# Sample auth (depends on your reader protocol)
-s.sendall(f'LOGIN {USERNAME} {PASSWORD}\\n'.encode())
+if not output_file:
+    print("No file selected. Exiting.")
+    exit(1)
 
-while True:
-    data = s.recv(1024)
-    if not data:
-        break
-    print(data.decode().strip())
+# _____ SSH Config_____
+hostname = "10.220.12.61"
+username = "admin"
+password = "Eneo@1234"
+command = "show tags"
 
-s.close()
-"""
+# Initialize SSH Client
+
+client = paramiko.SSHClient()
+client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+try:
+    client.connect(hostname, username=username, password=password)
+
+    stdin, stdout, stderr = client.exec_command(command)
+    with open(output_file, "w") as f:
+        print(f"[INFO] Connected to {hostname}. Output from `{command}`:\n")
+        for line in stdout:
+            print(line.strip())
+            f.write(line)
+
+    error_output = stderr.read().decode()
+    if error_output:
+        print(f"[ERROR] {error_output}")
+
+finally:
+    client.close()
