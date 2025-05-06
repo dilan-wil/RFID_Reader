@@ -42,55 +42,42 @@ def tag_report_cb(_reader, tag_reports):
         for tag in tag_reports
     ]
     TAG_QUEUE.put(TAG_DATA)
-    logging.info(f"Received {len(tag_reports)} tag(s)")
+    logging.info(f"📥 Received {len(tag_reports)} tag(s)")
 
 
-def handle_event(_reader, event):
-    """Callback for GPI or connection events"""
-    if "GPIEvent" in event:
-        gpi_event = event.get("GPIEvent")
-        logging.info(f"🔌 GPI Event: {gpi_event}")
-
-        if gpi_event and gpi_event.get("GPIPortNumber") == 1:
-            if gpi_event.get("GPIEvent"):
-                if READER and READER.is_alive():
-                    logging.info("GPI: Starting inventory")
-                    start_reading()
-            else:
-                logging.info("GPI: Stopping inventory")
-                stop_reading()
-
+def connection_event_cb(_reader, event):
+    """Callback for connection events only"""
     if "ConnectionAttemptEvent" in event:
-        logging.info(f"Connection Event: {event['ConnectionAttemptEvent']}")
+        logging.info(f"🔄 Connection Event: {event['ConnectionAttemptEvent']}")
     else:
-        logging.info(f"Other Event: {event}")
+        logging.info(f"ℹ️ Other Event: {event}")
 
 
 # -------- COMMAND FUNCTIONS -------- #
 def clear_tag_data():
     global TAG_DATA
     TAG_DATA = []
-    print("Tag data cleared.")
+    print("🧹 Tag data cleared.")
 
 
 def start_reading():
     if READER and READER.is_alive():
         clear_tag_data()
         READER.llrp.startInventory()
-        print("Started inventory.")
+        print("📡 Started inventory.")
 
 
 def stop_reading():
     if READER and READER.is_alive():
         READER.llrp.stopPolitely()
-        print("Stopped inventory.")
+        print("🛑 Stopped inventory.")
 
 
 def print_reader_state():
     if READER and READER.is_alive():
-        print(f"Reader state: {LLRPReaderState.getStateName(READER.llrp.state)}")
+        print(f"📊 Reader state: {LLRPReaderState.getStateName(READER.llrp.state)}")
     else:
-        print("Reader not connected.")
+        print("🔌 Reader not connected.")
 
 
 # -------- THREAD: TAG DISPLAY -------- #
@@ -98,7 +85,7 @@ def process_tags_console():
     while True:
         if not TAG_QUEUE.empty():
             tags = TAG_QUEUE.get()
-            print(f"\nTags read ({len(tags)}):")
+            print(f"\n📦 Tags read ({len(tags)}):")
             for tag in tags:
                 print(f" - EPC: {tag['epc']} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x")
         time.sleep(0.1)
@@ -121,34 +108,31 @@ def user_interface():
             stop_reading()
             break
         else:
-            print("Unknown command.")
+            print("❓ Unknown command.")
 
 
 # -------- MAIN -------- #
-
 def main():
     global READER
 
-    reader_ip = input("Enter RFID reader IP address (e.g., 192.168.1.100): ").strip()
+    reader_ip = input("🔧 Enter RFID reader IP address (e.g., 192.168.1.100): ").strip()
     if not reader_ip:
-        print("No IP address entered. Exiting...")
+        print("❌ No IP address entered. Exiting...")
         return
 
-    print("Initializing RFID Reader...")
-    config = LLRPReaderConfig(
-        antennas=[1],
-        tx_power={1: 30},  # Set antenna 1 to 30 dBm
-        reset_on_connect=True,
-        start_inventory=False,
-        event_selector={"GPIEvent": True},
-    )
+    print("🚀 Initializing RFID Reader...")
+    config = LLRPReaderConfig()
+    config.reset_on_connect = True
+    config.start_inventory = False  # Important to avoid auto start
+    config.event_selector = {}      # No GPI events
+    config.tx_power = {1: 3000}     # 30 dBm (adjust if needed)
 
     READER = LLRPReaderClient(reader_ip, PORT, config)
     READER.add_tag_report_callback(tag_report_cb)
-    READER.add_event_callback(handle_event)
+    READER.add_event_callback(connection_event_cb)
     READER.connect()
 
-    print("Reader connected. Ready for commands.")
+    print("✅ Reader connected. Ready for commands.")
 
     tag_thread = threading.Thread(target=process_tags_console, daemon=True)
     tag_thread.start()
@@ -158,7 +142,7 @@ def main():
     if READER and READER.is_alive():
         READER.llrp.stopPolitely()
         READER.disconnect()
-        print("Reader disconnected. Exiting...")
+        print("👋 Reader disconnected. Exiting...")
 
 
 if __name__ == "__main__":
