@@ -29,6 +29,7 @@ client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
 try:
     client.connect(hostname, username=username, password=password)
+    print("[INFO] SSH CONNECTION SUCCESSFUL.")
 
     stdin, stdout, stderr = client.exec_command(command)
     with open(output_file, "w") as f:
@@ -40,6 +41,10 @@ try:
     error_output = stderr.read().decode()
     if error_output:
         print(f"[ERROR] {error_output}")
+
+except Exception as e:
+    print(f"[ERROR] FAILED TO CONNECT: {e}")
+    exit(1)
 
 finally:
     client.close()
