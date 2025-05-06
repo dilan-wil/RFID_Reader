@@ -125,7 +125,7 @@ def main():
     config.reset_on_connect = True
     config.start_inventory = False  # Important to avoid auto start
     config.event_selector = {}      # No GPI events
-    config.tx_power = {1: 3000}     # 30 dBm (adjust if needed)
+    config.tx_power = {1: 200}     # Safe Starting Point
 
     READER = LLRPReaderClient(reader_ip, PORT, config)
     READER.add_tag_report_callback(tag_report_cb)
