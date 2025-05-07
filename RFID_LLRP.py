@@ -42,9 +42,9 @@ def tag_report_cb(_reader, tag_reports):
         for tag in tag_reports
     ]
     TAG_QUEUE.put(TAG_DATA)
-    print(f"\n📥 Received {len(tag_reports)} tag(s):")
-    for tag in TAG_DATA:
-        print(f"    🔍 EPC: {tag['epc']} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
+    # print(f"\n📥 Received {len(tag_reports)} tag(s):")
+    # for tag in TAG_DATA:
+    #     print(f"    🔍 EPC: {tag['epc']} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
 
 
 def connection_event_cb(_reader, event):
@@ -84,6 +84,8 @@ def print_reader_state():
 
 # -------- THREAD: TAG DISPLAY -------- #
 def process_tags_console():
+    for i in range(10):
+        print(f"Iteration {i}")
     while True:
         try:
             if not TAG_QUEUE.empty():
