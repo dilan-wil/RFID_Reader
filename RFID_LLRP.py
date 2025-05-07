@@ -130,7 +130,7 @@ def main():
     config.reset_on_connect = True
     config.start_inventory = False  # Important to avoid auto start
     config.event_selector = {}      # No GPI events
-    config.tx_power = {1: 300, 2: 300}
+    config.tx_power = {1: 0, 2: 0}
     config.antennas = [1, 2]
 
     READER = LLRPReaderClient(reader_ip, PORT, config)
