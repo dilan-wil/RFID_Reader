@@ -38,7 +38,7 @@ def tag_report_cb(reader, tags):
         return
 
 def main(args):
-    # args.host = input("🔧 Enter RFID reader IP address (e.g., 192.168.1.100): ").strip()
+    args.host = input("🔧 Enter RFID reader IP address (e.g., 192.168.1.100): ").strip()
     global start_time
 
     if not args.host:
