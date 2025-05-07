@@ -64,7 +64,7 @@ def clear_tag_data():
 
 def start_reading():
     if READER and READER.is_alive():
-        clear_tag_data()
+        # clear_tag_data()
         READER.llrp.startInventory()
         print("📡 Started inventory.")
 
@@ -85,8 +85,6 @@ def print_reader_state():
 # -------- THREAD: TAG DISPLAY -------- #
 def process_tags_console():
     while True:
-        for i in range(10):
-            print(f"Iteration {i}")
         try:
             if not TAG_QUEUE.empty():
                 tags = TAG_QUEUE.get()
@@ -132,7 +130,7 @@ def main():
     config.reset_on_connect = True
     config.start_inventory = False  # Important to avoid auto start
     config.event_selector = {}      # No GPI events
-    config.tx_power = {1: 200, 2: 200}
+    config.tx_power = {1: 0, 2: 0}
     config.antennas = [1, 2]
 
     READER = LLRPReaderClient(reader_ip, PORT, config)
