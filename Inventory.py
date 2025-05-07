@@ -38,7 +38,29 @@ def tag_report_cb(reader, tags):
         return
 
 def main(args):
-    args.host = input("🔧 Enter RFID reader IP address (e.g., 192.168.1.100): ").strip()
+    class Args:
+        host = ['10.220.12.61']
+        antennas = '1'
+        frequencies = '0'
+        time = 10
+        every_n = 1
+        tx_power = 3000
+        tari = 0
+        session = 1
+        mode_identifier = 1002
+        population = 32
+        reconnect = False
+        reconnect_retries = 0
+        tag_filter_mask = None
+        hoptable_id = 0
+        keepalive_interval = 0
+        impinj_extended_configuration = None
+        impinj_search_mode = None
+        impinj_reports = False
+        port = 5084
+
+    args = Args()
+
     global start_time
 
     if not args.host:
