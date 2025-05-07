@@ -84,9 +84,9 @@ def print_reader_state():
 
 # -------- THREAD: TAG DISPLAY -------- #
 def process_tags_console():
-    for i in range(10):
-        print(f"Iteration {i}")
     while True:
+        for i in range(10):
+            print(f"Iteration {i}")
         try:
             if not TAG_QUEUE.empty():
                 tags = TAG_QUEUE.get()
