@@ -42,7 +42,9 @@ def tag_report_cb(_reader, tag_reports):
         for tag in tag_reports
     ]
     TAG_QUEUE.put(TAG_DATA)
-    logging.info(f"📥 Received {len(tag_reports)} tag(s)")
+    print(f"\n📥 Received {len(tag_reports)} tag(s):")
+    for tag in TAG_DATA:
+        print(f"    🔍 EPC: {tag['epc']} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
 
 
 def connection_event_cb(_reader, event):
@@ -83,11 +85,14 @@ def print_reader_state():
 # -------- THREAD: TAG DISPLAY -------- #
 def process_tags_console():
     while True:
-        if not TAG_QUEUE.empty():
-            tags = TAG_QUEUE.get()
-            print(f"\n📦 Tags read ({len(tags)}):")
-            for tag in tags:
-                print(f" - EPC: {tag['epc']} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x")
+        try:
+            if not TAG_QUEUE.empty():
+                tags = TAG_QUEUE.get()
+                print(f"\n📦 Tags read ({len(tags)}):")
+                for tag in tags:
+                    print(f" - EPC: {tag['epc']} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x")
+        except Exception as e:
+            print(f"❌ Error in tag processing thread: {e}")
         time.sleep(0.1)
 
 
@@ -125,7 +130,8 @@ def main():
     config.reset_on_connect = True
     config.start_inventory = False  # Important to avoid auto start
     config.event_selector = {}      # No GPI events
-    config.tx_power = {1: 200}     # Safe Starting Point
+    config.tx_power = {1: 300, 2: 300}
+    config.antennas = [1, 2]
 
     READER = LLRPReaderClient(reader_ip, PORT, config)
     READER.add_tag_report_callback(tag_report_cb)
