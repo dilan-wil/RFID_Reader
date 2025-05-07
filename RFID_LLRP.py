@@ -44,7 +44,7 @@ def tag_report_cb(_reader, tag_reports):
     TAG_QUEUE.put(TAG_DATA)
     # print(f"\n📥 Received {len(tag_reports)} tag(s):")
     # for tag in TAG_DATA:
-    #     print(f"    🔍 EPC: {tag['epc']} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
+    #     print(f"  🔍 EPC: {tag['epc']} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
 
 
 def connection_event_cb(_reader, event):
@@ -64,7 +64,7 @@ def clear_tag_data():
 
 def start_reading():
     if READER and READER.is_alive():
-        # clear_tag_data()
+        clear_tag_data()
         READER.llrp.startInventory()
         print("📡 Started inventory.")
 
@@ -130,7 +130,7 @@ def main():
     config.reset_on_connect = True
     config.start_inventory = False  # Important to avoid auto start
     config.event_selector = {}      # No GPI events
-    config.tx_power = {1: 0, 2: 0}
+    config.tx_power = {1: 200, 2: 200}
     config.antennas = [1, 2]
 
     READER = LLRPReaderClient(reader_ip, PORT, config)

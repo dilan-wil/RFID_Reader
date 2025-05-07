@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a7e3e28f-042c-465b-84b2-293fa4a05c73" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/RFID_LLRP_2.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/RFID_LLRP.py" beforeDir="false" afterPath="$PROJECT_DIR$/RFID_LLRP.py" afterDir="false" />
     </list>
