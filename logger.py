@@ -66,7 +66,8 @@ def main(args):
     enabled_antennas = args.antennas
     if not args.frequencies or args.frequencies == [0]:
         frequency_config = {
-            'Automatic': True
+            'Automatic': True,
+            'ChannelList': [1],
         }
     else:
         frequency_config = {
@@ -109,7 +110,7 @@ def main(args):
         else:
             port = args.port
 
-        config = LLRPReaderConfig(factory_args)
+        config = LLRPReaderConfig(reader_config_args=factory_args, impinj_extensions=False)
         reader = LLRPReaderClient(host, port, config)
         reader.add_disconnected_callback(finish_cb)
         reader.add_tag_report_callback(csvLogger.tag_cb)
@@ -117,12 +118,15 @@ def main(args):
 
     try:
         for reader in reader_clients:
-            reader.connect()
-    except Exception:
-        if reader:
-            logger.error("Failed to establish a connection with: %r",
-                         reader.get_peername())
-        # On one error, abort all
+            try:
+                reader.connect()
+            except Exception as e:
+                if "Impinj" in str(e) or "ERROR_MESSAGE" in str(e):
+                    logger.warning("Ignoring vendor extension error: %s", e)
+                else:
+                    raise  # Re-raise if it's another issue
+    except Exception as e:
+        logger.error("Reader connection failed: %s", e)
         for reader in reader_clients:
             reader.disconnect()
 
@@ -145,13 +149,14 @@ def main(args):
                     logger.exception("Error during disconnect. Ignoring...")
 
     csvLogger.flush()
+    csvLogger.filehandle.close()
 
 
 def start_logging():
     host_input = host_entry.get()
     host = [h.strip() for h in host_input.split(',')]
     port = int(port_entry.get())
-    outfile = outfile_entry.get()
+    outfile_path = outfile_entry.get()
     antennas_input = antennas_entry.get()
     antennas = [int(x.strip()) for x in antennas_input.split(',')]
     tx_power = int(tx_power_entry.get())
@@ -159,8 +164,14 @@ def start_logging():
     reader_timestamp = timestamp_var.get()
     frequencies = []
 
-    if not host or not outfile:
+    if not host or not outfile_path:
         messagebox.showerror("Input Error", "Please fill in all fields.")
+        return
+
+    try:
+        outfile = open(outfile_path, 'w', newline='')  # ✅ Correct: open file
+    except Exception as e:
+        messagebox.showerror("File Error", f"Failed to open file: {e}")
         return
 
     args = type('Args', (object,), {
