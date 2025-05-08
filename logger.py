@@ -110,7 +110,7 @@ def main(args):
         else:
             port = args.port
 
-        config = LLRPReaderConfig(reader_config_args=factory_args, impinj_extensions=False)
+        config = LLRPReaderConfig(factory_args)
         reader = LLRPReaderClient(host, port, config)
         reader.add_disconnected_callback(finish_cb)
         reader.add_tag_report_callback(csvLogger.tag_cb)
