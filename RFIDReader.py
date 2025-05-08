@@ -86,11 +86,11 @@ def process_tags_console():
         try:
             tag = TAG_QUEUE.get(timeout=0.2)
             epc = tag["epc"]
-            if epc not in seen_epcs:
-                seen_epcs.add(epc)
-                SEEN_TAGS.append(tag)
-                print(f"\n📦 New tag:")
-                print(f" - EPC: {epc} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
+            # if epc not in seen_epcs:
+            #     seen_epcs.add(epc)
+            SEEN_TAGS.append(tag)
+            print(f"\n📦 New tag:")
+            print(f" - EPC: {epc} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
         except Empty:
             continue
         except Exception as e:
