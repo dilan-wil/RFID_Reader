@@ -86,11 +86,11 @@ def print_reader_state():
 def process_tags_console():
     while True:
         try:
-            if not TAG_QUEUE.empty():
-                tags = TAG_QUEUE.get()
-                print(f"\n📦 Tags read ({len(tags)}):")
-                for tag in tags:
-                    print(f" - EPC: {tag['epc']} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x")
+            # if not TAG_QUEUE.empty():
+            tags = TAG_QUEUE.get()
+            print(f"\n📦 Tags read ({len(tags)}):")
+            for tag in tags:
+                print(f" - EPC: {tag['epc']} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x")
         except Exception as e:
             print(f"❌ Error in tag processing thread: {e}")
         time.sleep(0.1)
