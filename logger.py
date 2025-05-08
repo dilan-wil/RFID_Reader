@@ -63,8 +63,8 @@ def main(args):
         logger.info('No output file specified.')
         return 0
 
-    enabled_antennas = [int(x.strip()) for x in args.antennas]
-    frequency_list = [int(x.strip()) for x in args.frequencies]
+    enabled_antennas = args.antennas
+    frequency_list = args.frequencies
 
     factory_args = dict(
         antennas=enabled_antennas,
