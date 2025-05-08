@@ -63,8 +63,8 @@ def main(args):
         logger.info('No output file specified.')
         return 0
 
-    enabled_antennas = [int(x.strip()) for x in args.antennas.split(',')]
-    frequency_list = [int(x.strip()) for x in args.frequencies.split(',')]
+    enabled_antennas = [int(x.strip()) for x in args.antennas]
+    frequency_list = [int(x.strip()) for x in args.frequencies]
 
     factory_args = dict(
         antennas=enabled_antennas,
@@ -147,10 +147,12 @@ def main(args):
 
 
 def start_logging():
-    host = host_entry.get().split(',')
+    host_input = host_entry.get()
+    host = [h.strip() for h in host_input.split(',')]
     port = int(port_entry.get())
     outfile = outfile_entry.get()
-    antennas = antennas_entry.get()
+    antennas_input = antennas_entry.get()
+    antennas = [int(x.strip()) for x in antennas_input.split(',')]
     tx_power = int(tx_power_entry.get())
     epc = epc_entry.get() or None
     reader_timestamp = timestamp_var.get()
