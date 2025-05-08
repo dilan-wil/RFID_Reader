@@ -161,6 +161,8 @@ def main():
     READER.add_event_callback(connection_event_cb)
     READER.connect()
 
+    time.sleep(2)
+
     try:
         caps = READER.llrp.capabilities
         antenna_caps = caps.get('TransmitPowerLevels', {})
