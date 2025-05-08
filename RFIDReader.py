@@ -3,8 +3,9 @@
 import time
 import logging
 import threading
-from queue import Queue
+from queue import Queue, Empty
 from typing import Optional
+from collections import deque
 
 from sllurp.llrp import (
     LLRP_DEFAULT_PORT,
@@ -19,7 +20,7 @@ PORT = LLRP_DEFAULT_PORT
 # -------- GLOBALS -------- #
 READER: Optional[LLRPReaderClient] = None
 TAG_QUEUE = Queue()
-TAG_DATA = []
+SEEN_TAGS = deque(maxlen=100)  # Keep latest 100 for reference
 
 # -------- LOGGING SETUP -------- #
 logging.basicConfig(level=logging.INFO)
@@ -31,20 +32,17 @@ sllurp_logger.addHandler(logging.StreamHandler())
 # -------- CALLBACKS -------- #
 def tag_report_cb(_reader, tag_reports):
     """Callback for tag reads"""
-    global TAG_DATA
-    TAG_DATA = [
-        {
-            "epc": tag["EPC"].decode("ascii"),
-            "channel": tag["ChannelIndex"],
-            "last_seen": tag["LastSeenTimestampUTC"],
-            "seen_count": tag["TagSeenCount"],
-        }
-        for tag in tag_reports
-    ]
-    TAG_QUEUE.put(TAG_DATA)
-    # print(f"\n📥 Received {len(tag_reports)} tag(s):")
-    # for tag in TAG_DATA:
-    #     print(f"  🔍 EPC: {tag['epc']} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
+    for tag in tag_reports:
+        try:
+            tag_data = {
+                "epc": tag["EPC"].decode("ascii"),
+                "channel": tag.get("ChannelIndex"),
+                "last_seen": tag.get("LastSeenTimestampUTC"),
+                "seen_count": tag.get("TagSeenCount"),
+            }
+            TAG_QUEUE.put(tag_data)
+        except Exception as e:
+            print(f"⚠️ Error parsing tag: {e}")
 
 
 def connection_event_cb(_reader, event):
@@ -57,8 +55,7 @@ def connection_event_cb(_reader, event):
 
 # -------- COMMAND FUNCTIONS -------- #
 def clear_tag_data():
-    global TAG_DATA
-    TAG_DATA = []
+    SEEN_TAGS.clear()
     print("🧹 Tag data cleared.")
 
 
@@ -84,17 +81,21 @@ def print_reader_state():
 
 # -------- THREAD: TAG DISPLAY -------- #
 def process_tags_console():
+    seen_epcs = set()
     while True:
         try:
-            # if not TAG_QUEUE.empty():
-            tags = TAG_QUEUE.get()
-            print(f"\n📦 Tags read ({len(tags)}):")
-            for tag in tags:
-                print(f" - EPC: {tag['epc']} | Ch: {tag['channel']} |"
-                      f" Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
+            tag = TAG_QUEUE.get(timeout=0.2)
+            epc = tag["epc"]
+            if epc not in seen_epcs:
+                seen_epcs.add(epc)
+                SEEN_TAGS.append(tag)
+                print(f"\n📦 New tag:")
+                print(f" - EPC: {epc} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
+        except Empty:
+            continue
         except Exception as e:
             print(f"❌ Error in tag processing thread: {e}")
-        time.sleep(0.1)
+        time.sleep(0.05)
 
 
 # -------- USER INTERFACE LOOP -------- #
@@ -127,13 +128,30 @@ def main():
         return
 
     print("🚀 Initializing RFID Reader...")
-    config = LLRPReaderConfig()
-    config.reset_on_connect = True
-    config.start_inventory = False  # Important to avoid auto start
-    config.event_selector = {}      # No GPI events
-    config.tx_power = {1: 200, 2: 200}
-    config.antennas = [1, 2]
 
+    # Create configuration with frequent reporting
+    config = LLRPReaderConfig(
+        reset_on_connect=True,
+        start_inventory=False,
+        event_selector={},
+        tx_power={1: 200, 2: 200},
+        antennas=[1, 2],
+        report_every_n_tags=1,
+        tag_content_selector={
+            'EnableROSpecID': False,
+            'EnableSpecIndex': False,
+            'EnableInventoryParameterSpecID': False,
+            'EnableAntennaID': True,
+            'EnableChannelIndex': False,
+            'EnablePeakRSSI': True,
+            'EnableFirstSeenTimestamp': False,
+            'EnableLastSeenTimestamp': True,
+            'EnableTagSeenCount': True,
+            'EnableAccessSpecID': False,
+        }
+    )
+
+    # Connect and bind callbacks
     READER = LLRPReaderClient(reader_ip, PORT, config)
     READER.add_tag_report_callback(tag_report_cb)
     READER.add_event_callback(connection_event_cb)
@@ -141,11 +159,14 @@ def main():
 
     print("✅ Reader connected. Ready for commands.")
 
+    # Launch tag processing thread
     tag_thread = threading.Thread(target=process_tags_console, daemon=True)
     tag_thread.start()
 
+    # Start user loop
     user_interface()
 
+    # Graceful shutdown
     if READER and READER.is_alive():
         READER.llrp.stopPolitely()
         READER.disconnect()
