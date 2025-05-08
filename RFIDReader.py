@@ -130,26 +130,27 @@ def main():
     print("🚀 Initializing RFID Reader...")
 
     # Create configuration with frequent reporting
-    config = LLRPReaderConfig(
-        reset_on_connect=True,
-        start_inventory=False,
-        event_selector={},
-        tx_power={1: 200, 2: 200},
-        antennas=[1, 2],
-        report_every_n_tags=1,
-        tag_content_selector={
-            'EnableROSpecID': False,
-            'EnableSpecIndex': False,
-            'EnableInventoryParameterSpecID': False,
-            'EnableAntennaID': True,
-            'EnableChannelIndex': False,
-            'EnablePeakRSSI': True,
-            'EnableFirstSeenTimestamp': False,
-            'EnableLastSeenTimestamp': True,
-            'EnableTagSeenCount': True,
-            'EnableAccessSpecID': False,
-        }
-    )
+    config = LLRPReaderConfig()
+    config.reset_on_connect = True
+    config.start_inventory = False
+    config.event_selector = {}
+    config.tx_power = {1: 200, 2: 200}
+    config.antennas = [1, 2]
+    config.report_every_n_tags = 1  # Report after every tag seen
+
+    # Configure the fields to include in each tag report
+    config.tag_content_selector = {
+        'EnableROSpecID': False,
+        'EnableSpecIndex': False,
+        'EnableInventoryParameterSpecID': False,
+        'EnableAntennaID': True,
+        'EnableChannelIndex': True,
+        'EnablePeakRSSI': True,
+        'EnableFirstSeenTimestamp': True,
+        'EnableLastSeenTimestamp': True,
+        'EnableTagSeenCount': True,
+        'EnableAccessSpecID': False,
+    }
 
     # Connect and bind callbacks
     READER = LLRPReaderClient(reader_ip, PORT, config)
