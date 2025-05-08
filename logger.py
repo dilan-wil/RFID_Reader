@@ -154,6 +154,7 @@ def start_logging():
     tx_power = int(tx_power_entry.get())
     epc = epc_entry.get() or None
     reader_timestamp = timestamp_var.get()
+    frequencies = []
 
     if not host or not outfile:
         messagebox.showerror("Input Error", "Please fill in all fields.")
@@ -166,7 +167,8 @@ def start_logging():
         'antennas': antennas,
         'tx_power': tx_power,
         'epc': epc,
-        'reader_timestamp': reader_timestamp
+        'reader_timestamp': reader_timestamp,
+        'frequencies': frequencies
     })
 
     main(args)
