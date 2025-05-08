@@ -134,7 +134,7 @@ def main():
     config.reset_on_connect = True
     config.start_inventory = False
     config.event_selector = {}
-    config.tx_power = 30
+    # config.tx_power = 30
     config.antennas = [1, 2]
     config.report_every_n_tags = 1  # Report after every tag seen
     config.reader_mode = None  # or a valid string like 'AutoSetDenseReader'
