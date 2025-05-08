@@ -64,7 +64,15 @@ def main(args):
         return 0
 
     enabled_antennas = args.antennas
-    frequency_list = args.frequencies
+    if not args.frequencies or args.frequencies == [0]:
+        frequency_config = {
+            'Automatic': True
+        }
+    else:
+        frequency_config = {
+            'Automatic': False,
+            'ChannelList': args.frequencies
+        }
 
     factory_args = dict(
         antennas=enabled_antennas,
@@ -87,15 +95,8 @@ def main(args):
                 'EnablePCBits': False,
             }
         },
-        frequencies={
-            'HopTableId': args.hoptable_id,
-            'ChannelList': frequency_list,
-            'Automatic': False
-        },
+        frequencies=frequency_config,
     )
-    if frequency_list[0] == 0:
-        factory_args['frequencies']['Automatic'] = True
-        factory_args['frequencies']['ChannelList'] = [1]
 
     csvLogger = CsvLogger(args.outfile, epc=args.epc,
                           reader_timestamp=args.reader_timestamp)
