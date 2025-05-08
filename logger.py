@@ -48,7 +48,7 @@ class CsvLogger(object):
 def finish_cb(reader):
     # Following would be possible, but then concurrent file write would have
     # to be handled. So it is more convenient to do it at the end of main.
-    #csvlogger.flush()
+    # csvLogger.flush()
     logger.info('Total tags seen: %d', csvLogger.num_tags)
 
 
@@ -97,6 +97,10 @@ def main(args):
             }
         },
         frequencies=frequency_config,
+        keepalive_interval=0,
+        impinj_extended_configuration=None,
+        impinj_search_mode=None,
+        impinj_reports=False
     )
 
     csvLogger = CsvLogger(args.outfile, epc=args.epc,

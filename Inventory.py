@@ -37,7 +37,7 @@ def tag_report_cb(reader, tags):
         logger.info('no tags seen')
         return
 
-def main(args):
+def main():
     class Args:
         host = ['10.220.12.61']
         antennas = '1'
@@ -169,3 +169,6 @@ def main(args):
             break
 
     LLRPReaderClient.disconnect_all_readers()
+
+if __name__ == "__main__":
+    main()
