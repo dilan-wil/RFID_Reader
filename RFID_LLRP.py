@@ -86,6 +86,8 @@ def print_reader_state():
 def process_tags_console():
     while True:
         try:
+            test_string = "EPC: 5843565447484d5549513132 | Ch: 18 | Seen: 1x"
+            TAG_QUEUE.put(test_string)
             # if not TAG_QUEUE.empty():
             tags = TAG_QUEUE.get()
             print(f"\n📦 Tags read ({len(tags)}):")
