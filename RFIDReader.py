@@ -161,6 +161,24 @@ def main():
     READER.add_event_callback(connection_event_cb)
     READER.connect()
 
+    try:
+        caps = READER.llrp.capabilities
+        antenna_caps = caps.get('TransmitPowerLevels', {})
+        if antenna_caps:
+            # Select a valid antenna
+            antenna = config.antennas[0]
+            power_levels = antenna_caps.get(antenna, [])
+            if power_levels:
+                max_power = max(power_levels)
+                READER.llrp.setTxPower({antenna: max_power})
+                print(f"✅ Set tx_power for antenna {antenna} to {max_power} centi-dBm")
+            else:
+                print(f"⚠️ No power levels found for antenna {antenna}")
+        else:
+            print("⚠️ Reader returned no transmit power levels")
+    except Exception as e:
+        print(f"❌ Failed to set tx_power: {e}")
+
     print("✅ Reader connected. Ready for commands.")
 
     # Launch tag processing thread
