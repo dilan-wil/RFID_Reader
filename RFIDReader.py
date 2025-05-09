@@ -40,6 +40,7 @@ def tag_report_cb(_reader, tag_reports):
             tag_data = {
                 "epc": tag["EPC"].decode("ascii"),
                 "channel": tag.get("ChannelIndex"),
+                "antenna": tag.get("AntennaID"),
                 "last_seen": tag.get("LastSeenTimestampUTC"),
                 "seen_count": tag.get("TagSeenCount"),
             }
@@ -93,9 +94,11 @@ def process_tags_console():
             #     seen_epcs.add(epc)
             SEEN_TAGS.append(tag)
             print(f"\n📦 New tag:")
-            print(f" - EPC: {epc} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
+            print(f" - EPC: {epc} | Antenna: {tag['antenna']} |"
+                  f" Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
             with open(LOG_FILE_PATH, "a") as f:
-                f.write(f"{tag['last_seen']}, EPC: {epc}, Channel: {tag['channel']}, SeenCount: {tag['seen_count']}\n")
+                f.write(f"{tag['last_seen']}, EPC: {epc}, Antenna: {tag['antenna']},"
+                        f" Channel: {tag['channel']}, SeenCount: {tag['seen_count']}\n")
         except Empty:
             continue
         except Exception as e:
