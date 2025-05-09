@@ -6,6 +6,8 @@ import threading
 from queue import Queue, Empty
 from typing import Optional
 from collections import deque
+import tkinter as tk
+from tkinter import filedialog
 
 from sllurp.llrp import (
     LLRP_DEFAULT_PORT,
@@ -21,6 +23,7 @@ PORT = LLRP_DEFAULT_PORT
 READER: Optional[LLRPReaderClient] = None
 TAG_QUEUE = Queue()
 SEEN_TAGS = deque(maxlen=100)  # Keep latest 100 for reference
+LOG_FILE_PATH = "tag_reads.txt"
 
 # -------- LOGGING SETUP -------- #
 logging.basicConfig(level=logging.INFO)
@@ -81,16 +84,18 @@ def print_reader_state():
 
 # -------- THREAD: TAG DISPLAY -------- #
 def process_tags_console():
-    seen_epcs = set()
+    # seen_epcs = set()
     while True:
         try:
             tag = TAG_QUEUE.get(timeout=0.2)
             epc = tag["epc"]
-            if epc not in seen_epcs:
-                seen_epcs.add(epc)
-                SEEN_TAGS.append(tag)
-                print(f"\n📦 New tag:")
-                print(f" - EPC: {epc} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
+            # if epc not in seen_epcs:
+            #     seen_epcs.add(epc)
+            SEEN_TAGS.append(tag)
+            print(f"\n📦 New tag:")
+            print(f" - EPC: {epc} | Ch: {tag['channel']} | Seen: {tag['seen_count']}x | Time: {tag['last_seen']}")
+            with open(LOG_FILE_PATH, "a") as f:
+                f.write(f"{tag['last_seen']}, EPC: {epc}, Channel: {tag['channel']}, SeenCount: {tag['seen_count']}\n")
         except Empty:
             continue
         except Exception as e:
@@ -121,6 +126,23 @@ def user_interface():
 # -------- MAIN -------- #
 def main():
     global READER
+    global LOG_FILE_PATH
+
+    root = tk.TK()
+    root.withdraw()
+
+    print("📁 Please choose a file to save tag logs...")
+    log_path = filedialog.asksaveasfilename(
+        title="Select log file location",
+        defaultextension=".txt",
+        filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
+    )
+
+    if log_path:
+        LOG_FILE_PATH = log_path
+        print(f"✅ Logging to: {LOG_FILE_PATH}")
+    else:
+        print("⚠️ No file selected. Using default: tag_reads.txt")
 
     reader_ip = input("🔧 Enter RFID reader IP address (e.g., 192.168.1.100): ").strip()
     if not reader_ip:
@@ -134,8 +156,8 @@ def main():
     config.reset_on_connect = True
     config.start_inventory = False
     config.event_selector = {}
-    # config.tx_power = {2: 3000}
-    config.antennas = [2]
+    config.tx_power = {1: 200, 2: 200}
+    config.antennas = [1, 2]
     config.report_every_n_tags = 1  # Report after every tag seen
     config.reader_mode = None  # or a valid string like 'AutoSetDenseReader'
     config.search_mode = None  # or a mode like 'DualTarget'
@@ -162,24 +184,6 @@ def main():
     READER.connect()
 
     time.sleep(2)
-
-    try:
-        caps = READER.llrp.capabilities
-        antenna_caps = caps.get('TransmitPowerLevels', {})
-        if antenna_caps:
-            # Select a valid antenna
-            antenna = config.antennas[0]
-            power_levels = antenna_caps.get(antenna, [])
-            if power_levels:
-                max_power = max(power_levels)
-                READER.llrp.setTxPower({antenna: max_power})
-                print(f"✅ Set tx_power for antenna {antenna} to {max_power} centi-dBm")
-            else:
-                print(f"⚠️ No power levels found for antenna {antenna}")
-        else:
-            print("⚠️ Reader returned no transmit power levels")
-    except Exception as e:
-        print(f"❌ Failed to set tx_power: {e}")
 
     print("✅ Reader connected. Ready for commands.")
 
