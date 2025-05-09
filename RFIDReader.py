@@ -128,7 +128,7 @@ def main():
     global READER
     global LOG_FILE_PATH
 
-    root = tk.TK()
+    root = tk.Tk()
     root.withdraw()
 
     print("📁 Please choose a file to save tag logs...")
