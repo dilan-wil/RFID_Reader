@@ -3,6 +3,7 @@
 import time
 import logging
 import threading
+import sqlite3
 from queue import Queue, Empty
 from typing import Optional
 from collections import deque
@@ -24,12 +25,48 @@ READER: Optional[LLRPReaderClient] = None
 TAG_QUEUE = Queue()
 SEEN_TAGS = deque(maxlen=100)  # Keep latest 100 for reference
 LOG_FILE_PATH = "tag_reads.txt"
+DB_FILE = "tags.db"
 
 # -------- LOGGING SETUP -------- #
 logging.basicConfig(level=logging.INFO)
 sllurp_logger = logging.getLogger("sllurp")
 sllurp_logger.setLevel(logging.INFO)
 sllurp_logger.addHandler(logging.StreamHandler())
+
+
+# -------- DATABASE SETUP -------- #
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS tag_reads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            epc TEXT NOT NULL,
+            antenna INTEGER,
+            channel INTEGER,
+            seen_count INTEGER,
+            last_seen TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+
+def save_tag_to_db(tag_data):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO tag_reads (epc, antenna, channel, seen_count, last_seen)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (
+        tag_data["epc"],
+        tag_data["antenna"],
+        tag_data["channel"],
+        tag_data["seen_count"],
+        tag_data["last_seen"]
+    ))
+    conn.commit()
+    conn.close()
 
 
 # -------- CALLBACKS -------- #
@@ -78,20 +115,18 @@ def stop_reading():
 
 def print_reader_state():
     if READER and READER.is_alive():
-        print(f"📊 Reader state: {LLRPReaderState.getStateName(READER.llrp.state)}")
+        print(
+            f"📊 Reader state: {LLRPReaderState.getStateName(READER.llrp.state)}")
     else:
         print("🔌 Reader not connected.")
 
 
 # -------- THREAD: TAG DISPLAY -------- #
 def process_tags_console():
-    # seen_epcs = set()
     while True:
         try:
             tag = TAG_QUEUE.get(timeout=0.2)
             epc = tag["epc"]
-            # if epc not in seen_epcs:
-            #     seen_epcs.add(epc)
             SEEN_TAGS.append(tag)
             print(f"\n📦 New tag:")
             print(f" - EPC: {epc} | Antenna: {tag['antenna']} |"
@@ -99,6 +134,7 @@ def process_tags_console():
             with open(LOG_FILE_PATH, "a") as f:
                 f.write(f"{tag['last_seen']}, EPC: {epc}, Antenna: {tag['antenna']},"
                         f" Channel: {tag['channel']}, SeenCount: {tag['seen_count']}\n")
+            save_tag_to_db(tag)  # Save to SQLite
         except Empty:
             continue
         except Exception as e:
@@ -131,40 +167,35 @@ def main():
     global READER
     global LOG_FILE_PATH
 
-    root = tk.Tk()
-    root.withdraw()
+    # Setup SQLite
+    init_db()
 
-    print("📁 Please choose a file to save tag logs...")
-    log_path = filedialog.asksaveasfilename(
-        title="Select log file location",
-        defaultextension=".txt",
-        filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
-    )
+    # File save dialog
+    log_path = input(
+        "📁 Enter file path to save tag logs (or press Enter to use default: tag_reads.txt): ").strip()
 
     if log_path:
         LOG_FILE_PATH = log_path
         print(f"✅ Logging to: {LOG_FILE_PATH}")
     else:
-        print("⚠️ No file selected. Using default: tag_reads.txt")
+        print("ℹ️ Using default log file: tag_reads.txt")
 
-    reader_ip = input("🔧 Enter RFID reader IP address (e.g., 192.168.1.100): ").strip()
+    reader_ip = input(
+        "🔧 Enter RFID reader IP address (e.g., 192.168.1.100): ").strip()
     if not reader_ip:
         print("❌ No IP address entered. Exiting...")
         return
 
     print("🚀 Initializing RFID Reader...")
 
-    # Create configuration with frequent reporting
     config = LLRPReaderConfig()
     config.reset_on_connect = True
     config.start_inventory = False
     config.tx_power = {0: 0, 1: 0}
     config.antennas = [0, 1]
-    config.report_every_n_tags = 1  # Report after every tag seen
-    config.reader_mode = None  # or a valid string like 'AutoSetDenseReader'
-    config.search_mode = None  # or a mode like 'DualTarget'
-
-    # Configure the fields to include in each tag report
+    config.report_every_n_tags = 1
+    config.reader_mode = None
+    config.search_mode = None
     config.tag_content_selector = {
         'EnableROSpecID': False,
         'EnableSpecIndex': False,
@@ -178,7 +209,6 @@ def main():
         'EnableAccessSpecID': False,
     }
 
-    # Connect and bind callbacks
     READER = LLRPReaderClient(reader_ip, PORT, config)
     READER.add_tag_report_callback(tag_report_cb)
     READER.add_event_callback(connection_event_cb)
@@ -188,14 +218,11 @@ def main():
 
     print("✅ Reader connected. Ready for commands.")
 
-    # Launch tag processing thread
     tag_thread = threading.Thread(target=process_tags_console, daemon=True)
     tag_thread.start()
 
-    # Start user loop
     user_interface()
 
-    # Graceful shutdown
     if READER and READER.is_alive():
         READER.llrp.stopPolitely()
         READER.disconnect()
